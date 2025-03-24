@@ -1,122 +1,86 @@
-<h1 align="center">ReBarUEFI + Coffee Lake support ASUS TUF Z270 Mark 2</h1>
+<h1 align="center">ReBarUEFI</h1>
 <p align="center">
 <a href="https://github.com/xCuri0/ReBarUEFI/actions/workflows/ReBarDxe.yml"><img src="https://img.shields.io/github/actions/workflow/status/xCuri0/ReBarUEFI/ReBarDxe.yml?logo=github&label=ReBarDxe&style=flat-square" alt="GitHub Actions ReBarDxe"></a>
 <a href="https://github.com/xCuri0/ReBarUEFI/actions/workflows/ReBarState.yml"><img src="https://img.shields.io/github/actions/workflow/status/xCuri0/ReBarUEFI/ReBarState.yml?logo=github&label=ReBarState&style=flat-square" alt="GitHub Actions ReBarState"></a>
+<a href="https://github.com/xCuri0/ReBarUEFI/releases/"><img src="https://img.shields.io/github/downloads/xCuri0/ReBarUEFI/total.svg?logo=github&logoColor=white&style=flat-square&color=E75776" alt="Downloads"></a>
 </p>
 <p align="center">
 A UEFI DXE driver to enable Resizable BAR on systems which don't support it officially. This provides performance benefits and is even <a href="https://www.intel.com/content/www/us/en/support/articles/000092416/graphics.html">required</a> for Intel Arc GPUs to function optimally.
 </p>
 
-> [!WARNING]
-> Not compatible with Nvidia Turing GPUs (GTX 1600 and RTX 2000)
 
-> [!WARNING]
-> Vulnerable to Spectre 
+![screenshot showing cpu-z, gpu-z and amd software](rebar.png)
 
+### If using an NVIDIA Turing GPU (20 or 16 series) see [NvStrapsReBar](https://github.com/terminatorul/NvStrapsReBar) for enabling Resizable BAR on it.
 
-![screenshot showing cpu-z, gpu-z](rebar.png)
+## Requirements
+* (optional) 4G Decoding enabled. See wiki page [Enabling hidden 4G decoding](https://github.com/xCuri0/ReBarUEFI/wiki/Enabling-hidden-4G-decoding) if you can't find an option for it. **Without 4G Decoding you will be limited to 1GB BAR and in some cases 512MB you can try to increase this upto 2GB by reducing TOLUD**
+* (optional) BIOS support for Large BARs. Patches exist to fix most issues relating to this
 
-# Requirements
-*  A USB Drive
-*  [Rufus](https://rufus.ie/en/)
-* **(Required for Intel ARC)** Working iGPU
-* **(Required)** A Skylake (6th gen) or Kaby Lake (7th gen) CPU
-* **(Optional)** a Coffee Lake CPU (8th or 9th gen)
+## Usage
+Follow the wiki guide [Adding FFS module](https://github.com/xCuri0/ReBarUEFI/wiki/Adding-FFS-module) and continue through the steps. It covers adding the module and the additional modifications needed if required.
 
+Once running the modified firmware make sure that **4G decoding is enabled and CSM is off**.
 
-# Usage
-## Prepairing the USB drive
-* Format your USB drive with Rufus as shown in this screenshot:
+Next run **ReBarState** which can be found in [Releases](https://github.com/xCuri0/ReBarUEFI/releases) (if you're on Linux build with CMake) and set the Resizable BAR size. In most cases you should be able to use ```32``` (unlimited) without issues but you might need to use a smaller BAR size if ```32``` doesn't work
 
+ **If Resizable BAR works for you reply to [List of working motherboards](https://github.com/xCuri0/ReBarUEFI/issues/11) so I can add it to the list.** Most firmware will accept unsigned/patched modules with Secure Boot on so you won't have any problems running certain games.
 
-![rufus](rufus.png)
+If you have any issues after enabling Resizable BAR see [Common Issues (and fixes)](https://github.com/xCuri0/ReBarUEFI/wiki/Common-issues-(and-fixes))
 
-* Drag and drop the contents of [Installer.zip](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases/) for Skylake (6th gen) and Kaby Lake (7th gen) CPU or [Installer8thGEN.zip](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases/) for Coffee Lake (8th and 9th gen) CPU to the Root of the USB drive. It should look like this:
+## How it works
+The module is added to the UEFI firmware's DXE volume so it gets executed on every boot. The ReBarDxe module replaces the function ```PreprocessController``` of ```PciHostBridgeResourceAllocationProtocol``` with a function that checks for Resizable BAR capability and then sets it to the size from the ```ReBarState``` NVRAM variable after running the original function.
 
-![usb drive](fs.png)
+The new ```PreprocessController``` function later gets called during PCI enumeration by the ```PciBus``` module which will detect the new BAR size and allocate it accordingly.
 
-## Instalation
+## AliExpress X99 Tutorial by Miyconst
+[![Resizable BAR on LGA 2011-3 X99](http://img.youtube.com/vi/vcJDWMpxpjE/0.jpg)](http://www.youtube.com/watch?v=vcJDWMpxpjEE "Resizable BAR on LGA 2011-3 X99")
 
- ### Coffee Lake (8th and 9th gen) preparation
-  > [!IMPORTANT]
-  > Skip this if you are using a Skylake (6th gen) or Kaby Lake (7th gen) CPU
+Instructions for applying UEFIPatch not included as it isn't required for these X99 motherboards. You can follow them below.
 
-> [!WARNING]
-> You will need a Skylake (6th gen) or Kaby Lake (7th gen) CPU for the instalation process
-* Boot to BIOS
-    * Enable CSM ```Advanced mode/Boot/CSM/Launch CSM - Enabled/Auto```
-    * Enable Above 4G encoding ```Advanced mode/Boot/Above 4G Decoding - Enabled```
-      * Save changes and exit
-> [!WARNING]
-> If you are using Intel ARC you will have to plug in your iGPU
-  * Enter the BIOS and boot form the USB
-      * Wait for the update to finish and reboot
-> [!CAUTION]
-> ***Do not!*** power off your computer while updating. This will brick your motherboard. If this happens your motherboard will enter BIOS Recovery mode and it will try to reflash the stock BIOS from the USB (I included the 1301 BIOS in [Installer8thGEN.zip](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases/) so you can reflash it without using a second PC)
->
-> **I accept no responsibility for bricked motherboards**
+## UEFI Patching
+Most UEFI firmwares have problems handling 64-bit BARs so several patches were created to fix these issues. You can use [UEFIPatch](https://github.com/LongSoft/UEFITool/releases/tag/0.28.0) to apply these patches located in the UEFIPatch folder. See wiki page [Using UEFIPatch](https://github.com/xCuri0/ReBarUEFI/wiki/Using-UEFIPatch) for more information on using UEFIPatch. **Make sure to check that pad files aren't changed and if they are use the workaround**
 
-  * Boot to BIOS and disable CSM ```Advanced mode/Boot/CSM/Launch CSM - Disabled```
-* Enable Above 4G encoding ```Advanced mode/Boot Above 4G Decoding - Disabled```
-      * Save changes and exit
-      * Now you can plug in your monitor to the dGPU **(Intel ARC only)**
-   
-* Prepare the Coffee Lake (8th and 9th gen) CPU by covering/conecting different pads on the CPU as shown (Green/Blue)
-      ![cpu](pinwork_map.png)
-  * Install the CPU
+### Working patches
+* <4GB BAR size limit removal
+* <16GB BAR size limit removal
+* <64GB BAR size limit removal
+* Prevent 64-bit BARs from being downgraded to 32-bit
+* Increase MMIO space to 64GB (Haswell/Broadwell). Full 512GB/39-bit isn't possible yet.
+* Increase MMIO space from 16GB to full usage of 64GB/36-bit range (Sandy/Ivy Bridge). **Requires DSDT modification on certain motherboards. See wiki page [DSDT Patching](https://github.com/xCuri0/ReBarUEFI/wiki/DSDT-Patching#sandyivy-bridge-dsdt-patch) for more information.**
+* Remove NVRAM whitelist to solve ReBarState ```GetLastError: 5```
+* Fix USB 3 ports not working in BIOS with 4G Decoding enabled (Ivy Bridge/Haswell/Broadwell)
+* X79 Above 4G Decoding fix
+  
+## Build
+Use the provided **buildffs.py** script after cloning inside an [edk2](https://github.com/tianocore/edk2) tree to build the DXE driver. ReBarState can be built on Windows or Linux using CMake. See wiki page [Building](https://github.com/xCuri0/ReBarUEFI/wiki/Building) for more information.
 
-### Skylake and Kaby Lake (6th and 7th gen)
-  > [!IMPORTANT]
-  > Skip this if you are using a Coffee Lake (8th and 9th gen) CPU
-  * Boot to BIOS
-    * Enable CSM ```Advanced mode/Boot/CSM/Launch CSM - Enabled/Auto```
-    * Disable Above 4G encoding ```Advanced mode/Boot/Above 4G Decoding - Disabled```
-      
-      * Save changes and exit
-> [!WARNING]
-> If you are using Intel ARC you will have to plug in your iGPU
-  * Enter the BIOS and boot form the USB
-      * Wait for the update to finish and reboot
-> [!CAUTION]
-> ***Do not!*** power off your computer while updating. This will brick your motherboard. If this happens your motherboard will enter BIOS Recovery mode and it will try to reflash the stock BIOS from the USB (I included the 1301 BIOS in [Installer.zip](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases/) so you can reflash it without using a second PC)
->
-> **I accept no responsibility for bricked motherboards**
+## FAQ
+### Will it work on a PCIe Gen2 system ?
+Previously it was thought that it won't work on PCIe Gen2 systems but one user had it work with an i5 2500k.
 
-  * Boot to BIOS and disable CSM ```Advanced mode/Boot/CSM/Launch CSM - Disabled```
-* Enable Above 4G encoding ```Advanced mode/Boot/Above 4G Decoding - Enabled```     
- * Save changes and exit
- * Now you can plug in your monitor to the dGPU **(Intel ARC only)**
+### Can I use Resizable BAR on my system without modifying BIOS ?
+You can use Linux with **4G Decoding on**, recent versions will automatically resize and allocate GPU BARs. If your BIOS doesn't have the 4G decoding option (make sure to check [hidden](https://github.com/xCuri0/ReBarUEFI/wiki/Enabling-hidden-4G-decoding)) or DSDT is faulty you can then follow the [Arch wiki guide for DSDT modification](https://wiki.archlinux.org/title/DSDT#Recompiling_it_yourself) using modifications from [DSDT Patching](https://github.com/xCuri0/ReBarUEFI/wiki/DSDT-Patching) and boot with ```pci=realloc``` in your kernel command line. **Currently there is no known method to get it on Windows without BIOS modification**
 
-## Configuration
-  * Configure ReBAR with [Configurator.exe](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases)
+### I set an unsupported BAR size and my system won't boot
+Clear CMOS and Resizable BAR should be disabled. In some cases it may be necessary to remove the CMOS battery for Resizable BAR to disable.
 
-    ![configurator](configurator.png)
-    
-     * You can choose a size of the BAR there (I used value of ```32``` with my Arc A750)
-        * Reboot after saving changes
-   
-# Troubleshooting
-## I set an unsupported BAR size and my system won't boot
-Clear CMOS and Resizable BAR should be disabled. Short the two pins labeled as ```CLRTC``` or boot with the iGPU and set the correct BAR size
+### Will less than optimal BAR sizes still give a performance increase ?
+On my system with an i5 3470 and Sapphire Nitro+ RX 580 8GB with [Resizable BAR enabled in driver](https://github.com/xCuri0/ReBarUEFI/wiki/Common-issues-(and-fixes)#how-do-i-enable-resizable-bar-on-unsupported-amd-gpus-) I get an upto 12% FPS increase with 2GB BAR size.
 
-![position of the CLRTC](reset.png)
+## Credit
+* [@dsanke](https://github.com/dsanke), [@cursemex](https://github.com/cursemex), [@val3nt33n](https://github.com/@val3nt33n), [@Mak3rde](https://github.com/Mak3rde) and [@romulus2k4](https://github.com/romulus2k4) for testing/helping develop patches
 
-## My BIOS is corrupted
-I included the 1301 BIOS in [Installer.zip](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases/) and the board should flash it automaticaly Using the ```CrashFree BIOS 3``` utility
+* The Linux kernel especially the ```amdgpu``` driver
 
-# FAQ
+* [EDK2](https://github.com/tianocore/edk2) for the base that all OEM UEFI follows
 
-## Can i flash the BIOS from Windows
-Yes but i do not recomend it because it is dangerous. But if you want to do it this way you can use AFUWIN using the /GAN command [No direct link because of DMCA](https://letmegooglethat.com/?q=AMI+Aptio+IV+BIOS+Tool+v3.05.04+archive.org)
+* [Ghidra](https://ghidra-sre.org/) which was used to patch UEFI modules to workaround artificial limitations
 
-## Can I use Resizable BAR on my system without modifying BIOS ?
-You can use Linux with **4G Decoding on**, recent versions will automatically resize and allocate GPU BARs. **Currently there is no known method to get it on Windows without BIOS modification**
+* [@vit9696](https://github.com/vit9696) for the NVRAM whitelist patches
 
-## I want to revert to the original BIOS
-You can do that but remember that you have to disable ReBAR with [Configurator.exe](https://github.com/xtomasnemec/ASUS-TUF-Z270-Mark-2-ReBarUEFI/releases), use a Skylake (6th gen) or Kaby Lake (7th gen) CPU and then you can revert to the original BIOS
+* [@ZOXZX](https://github.com/ZOXZX) for helping with the X79 Above 4G patches
 
-# Credit
-* [@xCuri0](https://github.com/xCuri0) for [ReBarUEFI](https://github.com/xCuri0/ReBarUEFI)
-* [American Megatrends](https://www.ami.com/) for the AFUDOS Utility
-* [ASUS](https://www.asus.com/) for the [Original BIOS](https://www.asus.com/in/supportonly/tuf%20z270%20mark%202/helpdesk_bios/)
-* svarmod for [CoffeeTime](https://mega.nz/folder/4oRViKSI#nn-8ZRHBa6_PDwNLzgubNA)
+* [@NikolajSchlej](https://github.com/NikolajSchlej) for developing UEFITool/UEFIPatch
+
+* [QEMU](https://www.qemu.org/)/OVMF made testing hooking way easier although it didn't have any resizable BAR devices so the only way I could test it was on my actual PC.
