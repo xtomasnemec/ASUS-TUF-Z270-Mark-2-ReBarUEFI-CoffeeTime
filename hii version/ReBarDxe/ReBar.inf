@@ -1,0 +1,24 @@
+[Version]
+  1.0
+
+[Library]
+  DebugLib
+  MemoryAllocationLib
+  HiiConfigAccess
+  HiiDatabase
+
+[Protocols]
+  gEfiHiiConfigAccessProtocolGuid
+  gEfiHiiDatabaseProtocolGuid
+
+[Components]
+  ReBarDxe/ReBar.c
+
+[Guids]
+  a3c5b77a-c88f-4a93-bf1c-4a92a32c65ce
+
+[Protocols]
+  gEfiHiiConfigAccessProtocolGuid
+  gEfiHiiDatabaseProtocolGuid
+
+[End]

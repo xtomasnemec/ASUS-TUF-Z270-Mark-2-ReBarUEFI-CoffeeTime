@@ -1,0 +1,11 @@
+; HII Strings for BIOS Driver Project
+
+STRING ID 0x0001 "Resizable BAR Support"
+STRING ID 0x0002 "Enable Resizable BAR"
+STRING ID 0x0003 "Disable Resizable BAR"
+STRING ID 0x0004 "Current BAR Size: %d MB"
+STRING ID 0x0005 "Maximum BAR Size: %d MB"
+STRING ID 0x0006 "Error: Unable to set BAR size"
+STRING ID 0x0007 "Configuration Saved"
+STRING ID 0x0008 "Configuration Not Saved"
+STRING ID 0x0009 "Press Enter to continue..."
